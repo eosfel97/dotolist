@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org" lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestionnaire de Tâches</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --bs-primary-rgb: 103, 80, 164;
+            --bs-success-rgb: 56, 142, 60;
+        }
+        body {
+            background-color: #f5f5f5;
+        }
+        .task-item {
+            transition: all 0.3s ease;
+        }
+        .task-item:hover {
+            background-color: rgba(0, 0, 0, 0.02);
+        }
+        .completed-task {
+            opacity: 0.8;
+        }
+        .form-control:focus {
+            box-shadow: 0 0 0 0.25rem rgba(var(--bs-primary-rgb), 0.25);
+        }
+        .btn-check:checked + .btn-outline-primary {
+            background-color: rgba(var(--bs-primary-rgb), 1);
+            color: white;
+        }
+        .empty-state {
+            opacity: 0.6;
+        }
+    </style>
+</head>
+<body class="bg-light">
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-8">
+            <div class="card shadow-sm">
+                <div class="card-body p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4">
+                        <h1 class="h4 mb-0 text-primary">
+                            <i class="bi bi-check2-circle me-2"></i>Gestionnaire de Tâches
+                        </h1>
+                        <div>
+                            <span class="badge rounded-pill bg-primary" th:text="${#lists.size(tasks)} + ' tâches'"></span>
+                        </div>
+                    </div>
+
+                    <!-- Formulaire d'ajout -->
+                    <form th:action="@{/tasks/add}" method="post" class="mb-4 needs-validation" novalidate>
+                        <div class="input-group has-validation">
+                            <input type="text" name="description" class="form-control form-control-lg"
+                                   placeholder="Que souhaitez-vous accomplir ?" required
+                                   aria-label="Description de la tâche">
+                            <button type="submit" class="btn btn-primary btn-lg">
+                                <i class="bi bi-plus-lg"></i> Ajouter
+                            </button>
+                            <div class="invalid-feedback">
+                                Veuillez saisir une description
+                            </div>
+                        </div>
+                    </form>
+
+                    <!-- Filtres -->
+                    <div class="d-flex mb-3">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a th:href="@{/tasks}" class="btn btn-outline-primary">Toutes</a>
+                            <a th:href="@{/tasks(filter='active')}" class="btn btn-outline-primary">Actives</a>
+                            <a th:href="@{/tasks(filter='completed')}" class="btn btn-outline-primary">Terminées</a>
+                        </div>
+                        <div class="ms-auto">
+                            <small class="text-muted">
+                                <span th:text="${pendingCount}"></span> restantes
+                            </small>
+                        </div>
+                    </div>
+
+                    <!-- Liste des tâches -->
+                    <div class="list-group mb-4">
+                        <div th:each="task : ${tasks}"
+                             class="list-group-item task-item py-3 px-4"
+                             th:classappend="${task.completed} ? 'completed-task' : ''">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="d-flex align-items-center">
+                                    <!-- Toggle -->
+                                    <form th:action="@{/tasks/toggle/{id}(id=${task.id})}" method="post" class="me-3">
+                                        <button type="submit" class="btn btn-sm p-0 border-0 bg-transparent">
+                                            <i th:class="${task.completed} ?
+                                                'bi bi-check-circle-fill text-success' :
+                                                'bi bi-circle text-muted'"
+                                               style="font-size: 1.25rem;"></i>
+                                        </button>
+                                    </form>
+
+                                    <!-- Description -->
+                                    <div>
+                                        <div th:class="${task.completed} ?
+                                            'text-decoration-line-through text-muted' : ''"
+                                             th:text="${task.description}"></div>
+                                        <small class="text-muted">
+                                            <i class="bi bi-clock"></i>
+                                            <span th:text="${#temporals.format(task.createdAt, 'dd MMM yyyy à HH:mm')}"></span>
+                                        </small>
+                                    </div>
+                                </div>
+
+                                <!-- Actions -->
+                                <div class="d-flex">
+                                    <!-- Suppression -->
+                                    <form th:action="@{/tasks/delete/{id}(id=${task.id})}" method="post" class="ms-2">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- État vide -->
+                        <div th:if="${#lists.isEmpty(tasks)}" class="text-center py-5 empty-state">
+                            <i class="bi bi-check2-all" style="font-size: 3rem; opacity: 0.3;"></i>
+                            <p class="mt-3 mb-0">Aucune tâche pour le moment</p>
+                            <small class="text-muted">Commencez par ajouter une tâche ci-dessus</small>
+                        </div>
+                    </div>
+
+                    <!-- Statistiques -->
+                    <div class="d-flex justify-content-between align-items-center text-muted small">
+                        <div>
+                            <span th:text="${completedCount}"></span> terminée(s)
+                        </div>
+                        <div>
+                            <span th:text="${pendingCount}"></span> en cours
+                        </div>
+                        <div>
+                            <span th:text="${#lists.size(tasks)}"></span> au total
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <footer class="mt-4 text-center text-muted small">
+                <p class="mb-0">Gestionnaire de Tâches &copy; 2023</p>
+            </footer>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // Validation du formulaire
+    (function () {
+        'use strict'
+
+        // Récupère tous les formulaires auxquels nous voulons appliquer le style de validation Bootstrap
+        var forms = document.querySelectorAll('.needs-validation')
+
+        // Boucle sur les formulaires et empêche la soumission
+        Array.prototype.slice.call(forms)
+            .forEach(function (form) {
+                form.addEventListener('submit', function (event) {
+                    if (!form.checkValidity()) {
+                        event.preventDefault()
+                        event.stopPropagation()
+                    }
+
+                    form.classList.add('was-validated')
+                }, false)
+            })
+    })()
+
+    // Confirmation avant suppression
+    document.querySelectorAll('form[action*="/delete/"]').forEach(form => {
+        form.addEventListener('submit', (e) => {
+            if (!confirm('Êtes-vous sûr de vouloir supprimer cette tâche ?')) {
+                e.preventDefault();
+            }
+        });
+    });
+</script>
+</body>
+</html>
